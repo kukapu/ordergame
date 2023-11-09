@@ -28,7 +28,7 @@ const getColorClass = (color: string) => {
     case 'brown':
       return 'bg-brown-500';
     case 'black':
-      return 'bg-stone-950';
+      return 'bg-stone-900';
     default:
       return '';
   }

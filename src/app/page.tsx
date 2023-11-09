@@ -38,14 +38,14 @@ export default function Home() {
   const [playerList, setPlayerList] = useState<string[]>([]);
 
   const [matches, setMatches] = useState(0);
-  const [attempts, setAttempts] = useState(10);
+  const [attempts, setAttempts] = useState(8);
   const [win, setWin] = useState(false);
   const [lose, setLose] = useState(false);
   const [history, setHistory] = useState<History[][]>([]);
 
   useEffect(() => {
     const randomColorList = disorderList([...completeList]);
-    const lengthList = spliceList(randomColorList, 4);
+    const lengthList = spliceList(randomColorList, 5);
     setSolutionList(disorderList([...lengthList]));
     setPlayerList(disorderList([...lengthList]));
   }, []);
@@ -68,8 +68,14 @@ export default function Home() {
     }
     setMatches(matchCount);
     setAttempts(attempts - 1);
-    setHistory([...history, [{playerListCopy, matchCount}]]);
-    console.log(history);
+    setHistory([[{playerListCopy, matchCount}],...history]);
+
+    if (matchCount === solutionList.length) {
+      setWin(true);
+    }
+    if (attempts === 1) {
+      setLose(true);
+    }
   }
 
   return (
@@ -83,27 +89,10 @@ export default function Home() {
           ))
         }
       </div> */}
-
-      {
-        history.map(history => {
-          return (
-            <>
-              <span className='flex gap-2' key={JSON.stringify(history)}>
-                {
-                  history[0].playerListCopy.map((color: string) => (
-                    <>
-                      <OrderItem color={color} key={color} />
-                    </>
-                  ))
-                }
-              </span>
-              <span>{history[0].matchCount}</span> 
-            </>
-          )
-        })
-      }
-
-      <DndContext
+      <button onClick={checkMatches}>TEST</button>
+      <p>Número de coincidencias: {matches}</p>
+      <p>Intentos restantes: {attempts}</p>
+      {!win && <DndContext
         collisionDetection={closestCenter}
         onDragEnd={handleOnDragEnd}
       >
@@ -120,10 +109,26 @@ export default function Home() {
           </div>
         </SortableContext>
 
-      </DndContext>
-      <button onClick={checkMatches}>TEST</button>
-      <p>Número de coincidencias: {matches}</p>
-      <p>Número de intentos: {attempts}</p>
+      </DndContext>}
+
+      {
+        history.map(history => {
+          return (
+            <>
+              <span className='flex gap-2 mt-2' key={JSON.stringify(history)}>
+                {
+                  history[0].playerListCopy.map((color: string) => (
+                    <>
+                      <OrderItem color={color} key={color} />
+                    </>
+                  ))
+                }
+              <span className='text-2xl flex center'>{history[0].matchCount}</span> 
+              </span>
+            </>
+          )
+        })
+      }
     </div>
   )
 }
