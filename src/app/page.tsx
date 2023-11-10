@@ -3,6 +3,7 @@ import { OrderItem } from '@/components/OrderItem';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import React, { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface History {
   playerListCopy: string[];
@@ -60,6 +61,9 @@ export default function Home() {
 
   function checkMatches() {
     let matchCount = 0;
+    if (attempts <= 0) {
+      return;
+    }
     let playerListCopy = JSON.parse(JSON.stringify(playerList)); // Crear una copia profunda de playerList
     for (let i = 0; i < playerListCopy.length; i++) {
       if (playerListCopy[i] === solutionList[i]) {
@@ -73,13 +77,13 @@ export default function Home() {
     if (matchCount === solutionList.length) {
       setWin(true);
     }
-    if (attempts === 1) {
+    if (attempts >= 1) {
       setLose(true);
     }
   }
 
   return (
-    <div className='center'>
+    <div className='pt-10 flex flex-col items-center h-screen'>
       <h1>ORDER GAME</h1>
 
       {/* <div className='flex gap-2'>
@@ -89,7 +93,7 @@ export default function Home() {
           ))
         }
       </div> */}
-      <button onClick={checkMatches}>TEST</button>
+      <button className='h-10 w-20 bg-stone-400' onClick={checkMatches}>TEST</button>
       <p>Número de coincidencias: {matches}</p>
       <p>Intentos restantes: {attempts}</p>
       {!win && <DndContext
@@ -103,7 +107,7 @@ export default function Home() {
           <div className='flex gap-2'>
             {
               playerList.map((color) => (
-                  <OrderItem color={color} key={color}/>
+                  <OrderItem color={color} key={uuidv4()}/>
               ))
             }
           </div>
@@ -112,10 +116,10 @@ export default function Home() {
       </DndContext>}
 
       {
-        history.map(history => {
+        history.map((history, index) => {
           return (
             <>
-              <span className='flex gap-2 mt-2' key={JSON.stringify(history)}>
+              <span className='flex gap-2 mt-2' key={uuidv4()}>
                 {
                   history[0].playerListCopy.map((color: string) => (
                     <>
