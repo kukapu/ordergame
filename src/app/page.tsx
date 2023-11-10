@@ -107,7 +107,7 @@ export default function Home() {
           <div className='flex gap-2'>
             {
               playerList.map((color) => (
-                  <OrderItem color={color} key={uuidv4()}/>
+                  <OrderItem color={color} key={color}/>
               ))
             }
           </div>
