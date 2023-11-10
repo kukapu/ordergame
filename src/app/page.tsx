@@ -97,7 +97,6 @@ export default function Home() {
       <p>Número de coincidencias: {matches}</p>
       <p>Intentos restantes: {attempts}</p>
       {!win && <DndContext
-        collisionDetection={closestCenter}
         onDragEnd={handleOnDragEnd}
       >
         <SortableContext
