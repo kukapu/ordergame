@@ -26,11 +26,7 @@ const getColorClass = (color: string) => {
     case 'gray':
       return 'bg-gray-500';
     case 'brown':
-      return 'bg-brown-500';
-    case 'black':
-      return 'bg-stone-900';
-    default:
-      return '';
+      return 'bg-amber-950';
   }
 }
 
@@ -53,7 +49,7 @@ export const OrderItem = ({ color }: OrderItemProps) => {
       {...attributes}
       {...listeners}
     >
-      <div className={`flex gap-2 items-center justify-center w-20 h-20 ${getColorClass(color)}`}></div>
+      <div className={`flex gap-2 items-center justify-center w-20 h-20 touch-auto ${getColorClass(color)}`}></div>
     </div>
   )
 }

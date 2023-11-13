@@ -21,7 +21,6 @@ const completeList: string[] = [
   'blue',
   'gray',
   'brown',
-  'black',
 ]
 
 const spliceList = (list: string[], n: number): string[] => {
@@ -45,7 +44,7 @@ export default function Home() {
   const [history, setHistory] = useState<History[][]>([]);
 
   useEffect(() => {
-    const randomColorList = disorderList([...completeList]);
+    const randomColorList = disorderList(disorderList([...completeList]));
     const lengthList = spliceList(randomColorList, 5);
     setSolutionList(disorderList([...lengthList]));
     setPlayerList(disorderList([...lengthList]));
