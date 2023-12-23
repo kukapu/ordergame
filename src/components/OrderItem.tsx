@@ -49,7 +49,7 @@ export const OrderItem = ({ color }: OrderItemProps) => {
       {...attributes}
       {...listeners}
     >
-      <div className={`flex gap-2 items-center justify-center w-20 h-20 touch-none ${getColorClass(color)}`}></div>
+      <div className={`flex gap-2 items-center justify-center w-16 h-16 touch-none ${getColorClass(color)}`}></div>
     </div>
   )
 }
