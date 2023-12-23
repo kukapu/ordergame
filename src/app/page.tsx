@@ -28,7 +28,12 @@ const spliceList = (list: string[], n: number): string[] => {
 }
 
 function disorderList<T>(array: T[]): T[] {
-  return array.sort(() => Math.random() - 0.5);
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 
@@ -95,7 +100,8 @@ export default function Home() {
       <button className='h-10 w-20 bg-stone-400' onClick={checkMatches}>TEST</button>
       <p>Número de coincidencias: {matches}</p>
       <p>Intentos restantes: {attempts}</p>
-      {!win && <DndContext
+      {!win && 
+      <DndContext
         onDragEnd={handleOnDragEnd}
       >
         <SortableContext
@@ -111,7 +117,8 @@ export default function Home() {
           </div>
         </SortableContext>
 
-      </DndContext>}
+      </DndContext>
+      }
 
       {
         history.map((history, index) => {
