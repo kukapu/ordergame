@@ -3,17 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 30, 41, 59;
+  --background-start-rgb: 241, 245, 249;
+  --background-end-rgb: 226, 232, 240;
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --card-bg: 255, 255, 255;
+  --button-bg: 148, 163, 184;
+  --button-hover: 100, 116, 139;
+  --border-color: 203, 213, 225;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+.dark {
+  --foreground-rgb: 226, 232, 240;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --card-bg: 51, 65, 85;
+  --button-bg: 71, 85, 105;
+  --button-hover: 100, 116, 139;
+  --border-color: 71, 85, 105;
+}
+
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 body {
@@ -24,4 +36,59 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+.theme-toggle {
+  @apply fixed top-4 right-4 z-50 flex items-center justify-center w-10 h-10 rounded-full shadow-md;
+  background-color: rgba(var(--card-bg), 0.8);
+  color: rgb(var(--foreground-rgb));
+}
+
+.game-container {
+  @apply max-w-4xl mx-auto p-4 rounded-xl;
+  background-color: rgba(var(--card-bg), 0.8);
+  box-shadow: var(--box-shadow);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(var(--border-color), 0.2);
+}
+
+.game-title {
+  @apply text-4xl font-bold text-center mb-6;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-button {
+  @apply py-2 px-6 rounded-lg font-medium transition-all duration-300 ease-in-out;
+  background-color: rgb(var(--button-bg));
+  color: white;
+  box-shadow: var(--box-shadow);
+}
+
+.game-button:hover {
+  @apply transform scale-105;
+  background-color: rgb(var(--button-hover));
+}
+
+.color-box {
+  @apply w-16 h-16 rounded-lg cursor-grab active:cursor-grabbing;
+  box-shadow: var(--box-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.color-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.history-item {
+  @apply p-3 rounded-lg mb-2;
+  background-color: rgba(var(--card-bg), 0.6);
+  border: 1px solid rgba(var(--border-color), 0.2);
+}
+
+.match-count {
+  @apply ml-2 flex items-center justify-center w-8 h-8 rounded-full font-bold;
+  background-color: rgb(var(--button-bg));
+  color: white;
 }
