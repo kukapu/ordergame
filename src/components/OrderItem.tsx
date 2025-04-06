@@ -61,13 +61,20 @@ export const OrderItem = ({ color }: OrderItemProps) => {
     >
       <motion.div 
         className={`color-box ${getColorClass(color)}`}
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.05, rotate: 0 }}
         whileTap={{ scale: 0.95 }}
         animate={{
           scale: isDragging ? 1.1 : 1,
+          rotate: isDragging ? [-2, 2, -2] : 0,
           boxShadow: isDragging 
             ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)' 
             : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
+        }}
+        transition={{
+          rotate: {
+            repeat: isDragging ? Infinity : 0,
+            duration: 0.5
+          }
         }}
       />
     </div>

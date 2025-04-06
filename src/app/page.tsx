@@ -5,7 +5,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface History {
   playerListCopy: string[];
@@ -64,6 +64,9 @@ const getColorClass = (color: string) => {
 export default function Home() {
   const [solutionList, setSolutionList] = useState<string[]>([]);
   const [playerList, setPlayerList] = useState<string[]>([]);
+  const [shuffling, setShuffling] = useState(true);
+  const [activeShuffleIndex, setActiveShuffleIndex] = useState<number | null>(null);
+  const [showingAttempt, setShowingAttempt] = useState<number | null>(null);
 
   const [matches, setMatches] = useState(0);
   const [attempts, setAttempts] = useState(7);
@@ -91,6 +94,54 @@ export default function Home() {
     // Inicializar los intentos vacíos
     const emptyAttemptsArray = Array.from({ length: 7 }, (_, i) => i);
     setEmptyAttempts(emptyAttemptsArray);
+    
+    // Animación de mezcla inicial estilo trilero
+    const startShuffleAnimation = () => {
+      let shuffleCount = 0;
+      const maxShuffles = 8; // Reducido de 15 a 8 movimientos
+      
+      const shuffleStep = () => {
+        if (shuffleCount >= maxShuffles) {
+          setActiveShuffleIndex(null);
+          setShuffling(false);
+          return;
+        }
+        
+        // Seleccionar dos índices aleatorios para intercambiar
+        const i = Math.floor(Math.random() * 5);
+        let j = Math.floor(Math.random() * 5);
+        while (j === i) {
+          j = Math.floor(Math.random() * 5);
+        }
+        
+        // Mostrar cuál está activo (para la animación)
+        setActiveShuffleIndex(i);
+        
+        // Intercambiar las posiciones
+        setTimeout(() => {
+          setPlayerList(prevList => {
+            const newList = [...prevList];
+            [newList[i], newList[j]] = [newList[j], newList[i]];
+            return newList;
+          });
+          
+          // Siguiente paso
+          shuffleCount++;
+          setTimeout(shuffleStep, 60); // Reducido de 120ms a 60ms
+        }, 40); // Reducido de 80ms a 40ms
+      };
+      
+      // Comenzar la animación después de un breve retraso
+      setTimeout(shuffleStep, 300); // Reducido de 500ms a 300ms
+    };
+    
+    startShuffleAnimation();
+    
+    // Cleanup
+    return () => {
+      setActiveShuffleIndex(null);
+      setShuffling(false);
+    };
   }, []);
 
   function handleDragEnd(event: { active: any; over: any; }) {
@@ -127,6 +178,9 @@ export default function Home() {
     const newEmptyAttempts = emptyAttempts.filter(attempt => attempt !== currentAttempt);
     setEmptyAttempts(newEmptyAttempts);
     
+    // Mostrar animación del nuevo intento
+    setShowingAttempt(currentAttempt);
+    
     setMatches(matchCount);
     setCurrentAttempt(currentAttempt + 1);
     setAttempts(attempts - 1);
@@ -137,6 +191,11 @@ export default function Home() {
     if (currentAttempt === 6) {
       setLose(true);
     }
+    
+    // Ocultar la animación después de un tiempo
+    setTimeout(() => {
+      setShowingAttempt(null);
+    }, 1500);
   }
 
   return (
@@ -164,11 +223,27 @@ export default function Home() {
             strategy={verticalListSortingStrategy}
           >
             <div className='flex gap-2 justify-center mb-8'>
-              {
-                playerList.map((color) => (
-                  <OrderItem color={color} key={color}/>
-                ))
-              }
+              <AnimatePresence>
+                {playerList.map((color, index) => (
+                  <motion.div
+                    key={color}
+                    layout
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ 
+                      scale: activeShuffleIndex === index ? 1.1 : 1, 
+                      opacity: 1,
+                      y: activeShuffleIndex === index ? -10 : 0
+                    }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 300, 
+                      damping: 20
+                    }}
+                  >
+                    <OrderItem color={color} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </SortableContext>
         </DndContext>
@@ -204,19 +279,44 @@ export default function Home() {
           {/* Intentos completados */}
           {history.map((historyItem, index) => {
             if (!historyItem || historyItem.length === 0) return null;
+            const isCurrentlyShowing = showingAttempt === index;
+            
             return (
               <div className='history-item flex items-center mb-2' key={`history-${index}`}>
                 <div className='flex gap-2'>
                   {
-                    historyItem[0].playerListCopy.map((color: string) => (
-                      <div 
-                        key={uuidv4()} 
-                        className={`color-box ${getColorClass(color)}`}
-                      ></div>
+                    historyItem[0].playerListCopy.map((color: string, colorIndex: number) => (
+                      <motion.div 
+                        key={uuidv4()}
+                        initial={isCurrentlyShowing ? { scale: 0, opacity: 0 } : false}
+                        animate={isCurrentlyShowing ? { 
+                          scale: 1, 
+                          opacity: 1
+                        } : {}}
+                        transition={{ 
+                          duration: 0.3, 
+                          delay: isCurrentlyShowing ? colorIndex * 0.1 : 0,
+                          type: "spring"
+                        }}
+                      >
+                        <div className={`color-box ${getColorClass(color)}`}></div>
+                      </motion.div>
                     ))
                   }
                 </div>
-                <div className="match-count">{historyItem[0].matchCount}</div>
+                <motion.div 
+                  className="match-count"
+                  initial={isCurrentlyShowing ? { scale: 0 } : false}
+                  animate={isCurrentlyShowing ? { scale: 1 } : {}}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 10,
+                    delay: isCurrentlyShowing ? 0.6 : 0 
+                  }}
+                >
+                  {historyItem[0].matchCount}
+                </motion.div>
               </div>
             )
           })}
