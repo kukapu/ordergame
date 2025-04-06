@@ -49,6 +49,7 @@ export const OrderItem = ({ color }: OrderItemProps) => {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
+    touchAction: 'none', // Importante para dispositivos táctiles
   };
 
   return (
@@ -57,10 +58,10 @@ export const OrderItem = ({ color }: OrderItemProps) => {
       style={style}
       {...attributes}
       {...listeners}
-      className="touch-manipulation"
+      className="touch-none select-none cursor-grab active:cursor-grabbing"
     >
       <motion.div 
-        className={`color-box ${getColorClass(color)}`}
+        className={`color-box ${getColorClass(color)} w-full aspect-square`}
         whileHover={{ scale: 1.05, rotate: 0 }}
         whileTap={{ scale: 0.95 }}
         animate={{

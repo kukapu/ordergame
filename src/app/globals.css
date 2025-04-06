@@ -3,25 +3,32 @@
 @tailwind utilities;
 
 :root {
+  /* Paleta principal más moderna */
   --foreground-rgb: 30, 41, 59;
   --background-start-rgb: 241, 245, 249;
   --background-end-rgb: 226, 232, 240;
-  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 4px 6px -1px rgba(0, 0, 0, 0.08);
   --card-bg: 255, 255, 255;
-  --button-bg: 148, 163, 184;
-  --button-hover: 100, 116, 139;
-  --border-color: 203, 213, 225;
+  --button-bg: 79, 70, 229;
+  --button-hover: 99, 102, 241;
+  --border-color: 226, 232, 240;
+  --accent-color: 124, 58, 237;
+  --success-color: 16, 185, 129;
+  --error-color: 239, 68, 68;
 }
 
 .dark {
   --foreground-rgb: 226, 232, 240;
   --background-start-rgb: 15, 23, 42;
   --background-end-rgb: 30, 41, 59;
-  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --card-bg: 51, 65, 85;
-  --button-bg: 71, 85, 105;
-  --button-hover: 100, 116, 139;
-  --border-color: 71, 85, 105;
+  --box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  --card-bg: 30, 41, 59;
+  --button-bg: 79, 70, 229;
+  --button-hover: 99, 102, 241;
+  --border-color: 51, 65, 85;
+  --accent-color: 139, 92, 246;
+  --success-color: 16, 185, 129;
+  --error-color: 239, 68, 68;
 }
 
 * {
@@ -37,58 +44,184 @@ body {
     )
     rgb(var(--background-start-rgb));
   min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .theme-toggle {
   @apply fixed top-4 right-4 z-50 flex items-center justify-center w-10 h-10 rounded-full shadow-md;
-  background-color: rgba(var(--card-bg), 0.8);
+  background-color: rgba(var(--card-bg), 0.9);
   color: rgb(var(--foreground-rgb));
-}
-
-.game-container {
-  @apply max-w-4xl mx-auto p-4 rounded-xl;
-  background-color: rgba(var(--card-bg), 0.8);
-  box-shadow: var(--box-shadow);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(var(--border-color), 0.2);
 }
 
+.game-container {
+  @apply max-w-4xl mx-auto p-6 rounded-2xl;
+  background-color: rgba(var(--card-bg), 0.95);
+  box-shadow: var(--box-shadow);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--border-color), 0.2);
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+
 .game-title {
-  @apply text-4xl font-bold text-center mb-6;
+  @apply text-4xl font-extrabold text-center mb-6;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to right, rgb(var(--accent-color)), rgb(var(--button-bg)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.025em;
 }
 
 .game-button {
-  @apply py-2 px-6 rounded-lg font-medium transition-all duration-300 ease-in-out;
+  @apply py-3 px-8 rounded-xl font-semibold transition-all duration-300 ease-in-out text-white;
   background-color: rgb(var(--button-bg));
-  color: white;
-  box-shadow: var(--box-shadow);
+  box-shadow: var(--box-shadow), 0 0 0 rgba(var(--button-bg), 0.5);
+  position: relative;
+  overflow: hidden;
 }
 
 .game-button:hover {
   @apply transform scale-105;
   background-color: rgb(var(--button-hover));
+  box-shadow: var(--box-shadow), 0 0 20px rgba(var(--button-bg), 0.3);
+}
+
+.game-button:active {
+  @apply transform scale-95;
+}
+
+.game-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.game-button:hover::after {
+  opacity: 1;
 }
 
 .color-box {
-  @apply w-16 h-16 rounded-lg cursor-grab active:cursor-grabbing;
+  @apply rounded-xl cursor-grab active:cursor-grabbing;
+  aspect-ratio: 1/1;
+  width: 100%;
+  max-width: 60px;
+  margin: 0 auto;
   box-shadow: var(--box-shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .color-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .history-item {
-  @apply p-3 rounded-lg mb-2;
-  background-color: rgba(var(--card-bg), 0.6);
+  @apply p-2 rounded-xl mb-2;
+  background-color: rgba(var(--card-bg), 0.7);
   border: 1px solid rgba(var(--border-color), 0.2);
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.history-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.1);
 }
 
 .match-count {
-  @apply ml-2 flex items-center justify-center w-8 h-8 rounded-full font-bold;
-  background-color: rgb(var(--button-bg));
-  color: white;
+  @apply ml-3 flex items-center justify-center w-10 h-10 rounded-full font-bold text-white;
+  background: linear-gradient(to bottom right, rgb(var(--accent-color)), rgb(var(--button-bg)));
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-container {
+  @apply flex justify-between items-center mb-6 p-4 rounded-xl;
+  background-color: rgba(var(--card-bg), 0.7);
+  border: 1px solid rgba(var(--border-color), 0.2);
+}
+
+.stat-item {
+  @apply flex flex-col items-center;
+}
+
+.stat-value {
+  @apply text-2xl font-bold;
+  color: rgb(var(--accent-color));
+}
+
+.stat-label {
+  @apply text-sm opacity-80;
+}
+
+.win-message {
+  @apply text-center p-6 rounded-xl mb-6;
+  background-color: rgba(var(--success-color), 0.15);
+  border: 1px solid rgba(var(--success-color), 0.3);
+  box-shadow: 0 4px 12px -2px rgba(var(--success-color), 0.15);
+}
+
+.lose-message {
+  @apply text-center p-6 rounded-xl mb-6;
+  background-color: rgba(var(--error-color), 0.15);
+  border: 1px solid rgba(var(--error-color), 0.3);
+  box-shadow: 0 4px 12px -2px rgba(var(--error-color), 0.15);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .game-container {
+    @apply p-4 mx-3 rounded-xl;
+    margin-top: 0.5rem;
+  }
+  
+  .game-title {
+    @apply text-3xl mb-4;
+  }
+  
+  .color-box {
+    max-width: 45px;
+  }
+  
+  .history-item {
+    @apply p-2 mb-2;
+  }
+  
+  .match-count {
+    @apply w-8 h-8 ml-2;
+  }
+  
+  .stats-container {
+    @apply p-3 mb-4;
+  }
+  
+  .stat-value {
+    @apply text-xl;
+  }
+  
+  .stat-label {
+    @apply text-xs;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-title {
+    @apply text-2xl;
+  }
+  
+  .color-box {
+    @apply w-10 h-10;
+  }
+  
+  .game-button {
+    @apply py-2 px-6;
+  }
 }

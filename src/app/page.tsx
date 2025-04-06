@@ -1,7 +1,7 @@
 'use client'
 import { OrderItem } from '@/components/OrderItem';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,14 +66,13 @@ export default function Home() {
   const [playerList, setPlayerList] = useState<string[]>([]);
   const [shuffling, setShuffling] = useState(true);
   const [activeShuffleIndex, setActiveShuffleIndex] = useState<number | null>(null);
-  const [showingAttempt, setShowingAttempt] = useState<number | null>(null);
-
+  const [showingAttempts, setShowingAttempts] = useState<number[]>([]);
   const [matches, setMatches] = useState(0);
   const [attempts, setAttempts] = useState(7);
   const [currentAttempt, setCurrentAttempt] = useState(0);
   const [win, setWin] = useState(false);
   const [lose, setLose] = useState(false);
-  const [history, setHistory] = useState<History[][]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [emptyAttempts, setEmptyAttempts] = useState<number[]>([]);
 
   // Configuración de sensores para mejorar la experiencia táctil
@@ -81,6 +80,12 @@ export default function Home() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // 8px
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
@@ -178,39 +183,158 @@ export default function Home() {
     const newEmptyAttempts = emptyAttempts.filter(attempt => attempt !== currentAttempt);
     setEmptyAttempts(newEmptyAttempts);
     
-    // Mostrar animación del nuevo intento
-    setShowingAttempt(currentAttempt);
+    // Añadir el nuevo intento al array de animaciones en curso
+    setShowingAttempts(prev => [...prev, currentAttempt]);
     
-    setMatches(matchCount);
-    setCurrentAttempt(currentAttempt + 1);
-    setAttempts(attempts - 1);
-
-    if (matchCount === solutionList.length) {
-      setWin(true);
-    }
-    if (currentAttempt === 6) {
-      setLose(true);
-    }
+    // Actualizar el estado después de la animación
+    const matchesWereEqual = matchCount === solutionList.length;
+    const attemptNumber = currentAttempt; // Guardar el valor actual para el timeout
     
-    // Ocultar la animación después de un tiempo
+    // Usar un timeout para asegurar que los estados se actualicen después de la animación
     setTimeout(() => {
-      setShowingAttempt(null);
-    }, 1500);
+      setMatches(matchCount);
+      setCurrentAttempt(currentAttempt + 1);
+      setAttempts(attempts - 1);
+      
+      if (matchesWereEqual) {
+        setWin(true);
+      }
+      if (currentAttempt === 6) {
+        setLose(true);
+      }
+    }, 100); // Tiempo muy corto para no retrasar la UI pero permitir que React actualice el DOM
+    
+    // Ocultar la animación después de un tiempo, pero solo eliminar el intento específico
+    setTimeout(() => {
+      setShowingAttempts(prev => prev.filter(attempt => attempt !== attemptNumber));
+    }, 1000);
+  }
+
+  function resetGame() {
+    const randomColorList = disorderList(disorderList([...completeList]));
+    const lengthList = spliceList(randomColorList, 5);
+    setSolutionList(disorderList([...lengthList]));
+    setPlayerList(disorderList([...lengthList]));
+    
+    setMatches(0);
+    setAttempts(7);
+    setCurrentAttempt(0);
+    setWin(false);
+    setLose(false);
+    setHistory([]);
+    
+    // Inicializar los intentos vacíos
+    const emptyAttemptsArray = Array.from({ length: 7 }, (_, i) => i);
+    setEmptyAttempts(emptyAttemptsArray);
+    
+    // Reiniciar animación
+    setShuffling(true);
+    
+    // Animación de mezcla inicial
+    const startShuffleAnimation = () => {
+      let shuffleCount = 0;
+      const maxShuffles = 8;
+      
+      const shuffleStep = () => {
+        if (shuffleCount >= maxShuffles) {
+          setActiveShuffleIndex(null);
+          setShuffling(false);
+          return;
+        }
+        
+        const i = Math.floor(Math.random() * 5);
+        let j = Math.floor(Math.random() * 5);
+        while (j === i) {
+          j = Math.floor(Math.random() * 5);
+        }
+        
+        setActiveShuffleIndex(i);
+        
+        setTimeout(() => {
+          setPlayerList(prevList => {
+            const newList = [...prevList];
+            [newList[i], newList[j]] = [newList[j], newList[i]];
+            return newList;
+          });
+          
+          shuffleCount++;
+          setTimeout(shuffleStep, 60);
+        }, 40);
+      };
+      
+      setTimeout(shuffleStep, 300);
+    };
+    
+    startShuffleAnimation();
   }
 
   return (
-    <div className='pt-10 flex flex-col items-center min-h-screen'>
+    <div className='pt-6 md:pt-10 flex flex-col items-center min-h-screen px-4'>
       <ThemeToggle />
       
-      <div className="game-container">
+      <div className="game-container w-[500px] max-w-md mx-auto">
         <h1 className="game-title">ORDER GAME</h1>
-
-        <button className='game-button mx-auto block mb-4' onClick={checkMatches}>TEST</button>
         
-        <div className="text-center mb-6">
-          <p className="text-lg mb-1">Coincidencias: {matches}</p>
-          <p className="text-lg">Intentos restantes: {attempts}</p>
+        {/* Panel de estadísticas */}
+        <div className="stats-container">
+          <div className="stat-item">
+            <span className="stat-value">{matches}</span>
+            <span className="stat-label">Coincidencias</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">{attempts}</span>
+            <span className="stat-label">Intentos</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">{currentAttempt}</span>
+            <span className="stat-label">Ronda</span>
+          </div>
         </div>
+
+        {win && (
+          <motion.div 
+            className="win-message"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-2xl font-bold mb-2">¡Has ganado!</h2>
+            <p className="mb-4">Has ordenado correctamente todos los colores.</p>
+            <button 
+              className="game-button mx-auto block" 
+              onClick={resetGame}
+            >
+              Jugar de nuevo
+            </button>
+          </motion.div>
+        )}
+
+        {lose && (
+          <motion.div 
+            className="lose-message"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-2xl font-bold mb-2">¡Has perdido!</h2>
+            <p className="mb-4">No has conseguido ordenar los colores correctamente.</p>
+            <button 
+              className="game-button mx-auto block" 
+              onClick={resetGame}
+            >
+              Intentar de nuevo
+            </button>
+          </motion.div>
+        )}
+        
+        {!win && !lose && (
+          <button 
+            className='game-button mx-auto block mb-8' 
+            onClick={checkMatches}
+          >
+            Comprobar orden
+          </button>
+        )}
         
         {!win && 
         <DndContext
@@ -222,121 +346,99 @@ export default function Home() {
             items={playerList}
             strategy={verticalListSortingStrategy}
           >
-            <div className='flex gap-2 justify-center mb-8'>
-              <AnimatePresence>
-                {playerList.map((color, index) => (
-                  <motion.div
-                    key={color}
-                    layout
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ 
-                      scale: activeShuffleIndex === index ? 1.1 : 1, 
-                      opacity: 1,
-                      y: activeShuffleIndex === index ? -10 : 0
-                    }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 300, 
-                      damping: 20
-                    }}
-                  >
-                    <OrderItem color={color} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className='grid grid-cols-5 gap-2.5 mb-6 mx-auto'>
+              {playerList.map((color, index) => (
+                <motion.div
+                  key={color}
+                  layout
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ 
+                    scale: activeShuffleIndex === index ? 1.1 : 1, 
+                    opacity: 1,
+                    y: activeShuffleIndex === index ? -10 : 0
+                  }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 20
+                  }}
+                >
+                  <OrderItem color={color} />
+                </motion.div>
+              ))}
             </div>
           </SortableContext>
         </DndContext>
         }
 
-        {win && (
-          <motion.div 
-            className="text-center p-4 rounded-lg bg-green-500/20 mb-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold mb-2">¡Has ganado!</h2>
-            <p>Has ordenado correctamente todos los colores.</p>
-          </motion.div>
-        )}
-
-        {lose && (
-          <motion.div 
-            className="text-center p-4 rounded-lg bg-red-500/20 mb-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold mb-2">¡Has perdido!</h2>
-            <p>No has conseguido ordenar los colores correctamente.</p>
-          </motion.div>
-        )}
-        
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Historial de intentos:</h2>
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-3 px-2">Historial de intentos:</h2>
           
-          {/* Intentos completados */}
-          {history.map((historyItem, index) => {
-            if (!historyItem || historyItem.length === 0) return null;
-            const isCurrentlyShowing = showingAttempt === index;
-            
-            return (
-              <div className='history-item flex items-center mb-2' key={`history-${index}`}>
-                <div className='flex gap-2'>
-                  {
-                    historyItem[0].playerListCopy.map((color: string, colorIndex: number) => (
-                      <motion.div 
-                        key={uuidv4()}
-                        initial={isCurrentlyShowing ? { scale: 0, opacity: 0 } : false}
-                        animate={isCurrentlyShowing ? { 
-                          scale: 1, 
-                          opacity: 1
-                        } : {}}
-                        transition={{ 
-                          duration: 0.3, 
-                          delay: isCurrentlyShowing ? colorIndex * 0.1 : 0,
-                          type: "spring"
-                        }}
-                      >
-                        <div className={`color-box ${getColorClass(color)}`}></div>
-                      </motion.div>
-                    ))
-                  }
+          <div className="history-container space-y-1">
+            {/* Intentos completados */}
+            {history.map((historyItem, index) => {
+              if (!historyItem || historyItem.length === 0) return null;
+              const isCurrentlyShowing = showingAttempts.includes(index);
+              
+              return (
+                <div className='history-item flex items-center' key={`history-${index}`}>
+                  <div className='grid grid-cols-5 gap-2.5 flex-grow'>
+                    {
+                      historyItem[0].playerListCopy.map((color: string, colorIndex: number) => (
+                        <motion.div 
+                          key={`${index}-${colorIndex}`}
+                          initial={isCurrentlyShowing ? { scale: 0, opacity: 0 } : false}
+                          animate={isCurrentlyShowing ? { 
+                            scale: 1, 
+                            opacity: 1
+                          } : {}}
+                          transition={{ 
+                            duration: 0.15, 
+                            delay: isCurrentlyShowing ? colorIndex * 0.07 : 0,
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 20
+                          }}
+                        >
+                          <div className={`color-box ${getColorClass(color)}`}></div>
+                        </motion.div>
+                      ))
+                    }
+                  </div>
+                  <motion.div 
+                    className="match-count"
+                    initial={isCurrentlyShowing ? { scale: 0 } : false}
+                    animate={isCurrentlyShowing ? { scale: 1 } : {}}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 15,
+                      delay: isCurrentlyShowing ? 0.45 : 0
+                    }}
+                  >
+                    {historyItem[0].matchCount}
+                  </motion.div>
                 </div>
-                <motion.div 
-                  className="match-count"
-                  initial={isCurrentlyShowing ? { scale: 0 } : false}
-                  animate={isCurrentlyShowing ? { scale: 1 } : {}}
-                  transition={{ 
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 10,
-                    delay: isCurrentlyShowing ? 0.6 : 0 
-                  }}
-                >
-                  {historyItem[0].matchCount}
-                </motion.div>
+              );
+            })}
+            
+            {/* Intentos vacíos */}
+            {emptyAttempts.map((attempt) => (
+              <div className='history-item flex items-center opacity-50' key={`empty-${attempt}`}>
+                <div className='grid grid-cols-5 gap-2.5 flex-grow'>
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <div 
+                      key={`empty-box-${attempt}-${i}`} 
+                      className="color-box bg-gray-300 dark:bg-gray-700"
+                    ></div>
+                  ))}
+                </div>
+                <div className="match-count">-</div>
               </div>
-            )
-          })}
-          
-          {/* Intentos vacíos */}
-          {emptyAttempts.map((attempt) => (
-            <div className='history-item flex items-center mb-2 opacity-50' key={`empty-${attempt}`}>
-              <div className='flex gap-2'>
-                {Array.from({ length: 5 }, (_, i) => (
-                  <div 
-                    key={`empty-box-${attempt}-${i}`} 
-                    className="color-box bg-gray-400/20"
-                  ></div>
-                ))}
-              </div>
-              <div className="match-count">?</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
