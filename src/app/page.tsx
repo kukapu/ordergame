@@ -12,6 +12,11 @@ interface History {
   matchCount: number;
 }
 
+interface ShufflePosition {
+  id: string;
+  position: number;
+}
+
 // Lista de colores con gradientes actualizados
 const completeList: string[] = [
   'gradient-1',
@@ -72,7 +77,7 @@ export default function Home() {
   const [currentAttempt, setCurrentAttempt] = useState(0);
   const [win, setWin] = useState(false);
   const [lose, setLose] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<(History | null)[]>([]);
   const [emptyAttempts, setEmptyAttempts] = useState<number[]>([]);
 
   // Configuración de sensores para mejorar la experiencia táctil
@@ -96,55 +101,48 @@ export default function Home() {
     setSolutionList(disorderList([...lengthList]));
     setPlayerList(disorderList([...lengthList]));
     
+    // Inicializar historial vacío para evitar errores en el mapeo
+    setHistory(Array(7).fill(null));
+    
     // Inicializar los intentos vacíos
     const emptyAttemptsArray = Array.from({ length: 7 }, (_, i) => i);
     setEmptyAttempts(emptyAttemptsArray);
     
-    // Animación de mezcla inicial estilo trilero
-    const startShuffleAnimation = () => {
-      let shuffleCount = 0;
-      const maxShuffles = 8; // Reducido de 15 a 8 movimientos
+    // Iniciar la animación de shuffle después de un breve retraso
+    setTimeout(() => {
+      setShuffling(true);
       
-      const shuffleStep = () => {
-        if (shuffleCount >= maxShuffles) {
-          setActiveShuffleIndex(null);
+      // Ejecutar varios intercambios con tiempo suficiente para ver la animación
+      let count = 0;
+      const maxShuffles = 8;
+      
+      const performShuffle = () => {
+        if (count >= maxShuffles) {
           setShuffling(false);
           return;
         }
         
-        // Seleccionar dos índices aleatorios para intercambiar
-        const i = Math.floor(Math.random() * 5);
-        let j = Math.floor(Math.random() * 5);
-        while (j === i) {
-          j = Math.floor(Math.random() * 5);
-        }
-        
-        // Mostrar cuál está activo (para la animación)
-        setActiveShuffleIndex(i);
-        
-        // Intercambiar las posiciones
-        setTimeout(() => {
-          setPlayerList(prevList => {
-            const newList = [...prevList];
-            [newList[i], newList[j]] = [newList[j], newList[i]];
-            return newList;
-          });
+        // Intercambiar dos posiciones aleatorias
+        setPlayerList(prevList => {
+          const newList = [...prevList];
+          const i = Math.floor(Math.random() * 5);
+          let j = Math.floor(Math.random() * 5);
+          while (j === i) {
+            j = Math.floor(Math.random() * 5);
+          }
           
-          // Siguiente paso
-          shuffleCount++;
-          setTimeout(shuffleStep, 60); // Reducido de 120ms a 60ms
-        }, 40); // Reducido de 80ms a 40ms
+          [newList[i], newList[j]] = [newList[j], newList[i]];
+          return newList;
+        });
+        
+        count++;
+        setTimeout(performShuffle, 50); 
       };
       
-      // Comenzar la animación después de un breve retraso
-      setTimeout(shuffleStep, 300); // Reducido de 500ms a 300ms
-    };
+      performShuffle();
+    }, 50); 
     
-    startShuffleAnimation();
-    
-    // Cleanup
     return () => {
-      setActiveShuffleIndex(null);
       setShuffling(false);
     };
   }, []);
@@ -161,12 +159,12 @@ export default function Home() {
   }
 
   function checkMatches() {
-    if (currentAttempt >= 7 || win) {
+    if (currentAttempt >= 7 || win || lose) {
       return;
     }
     
     let matchCount = 0;
-    let playerListCopy = JSON.parse(JSON.stringify(playerList)); // Crear una copia profunda de playerList
+    let playerListCopy = [...playerList]; // Crear una copia del playerList actual
     
     for (let i = 0; i < playerListCopy.length; i++) {
       if (playerListCopy[i] === solutionList[i]) {
@@ -174,40 +172,41 @@ export default function Home() {
       }
     }
     
-    // Actualizar el historial
+    // Actualizar el historial y estados inmediatamente
     const newHistory = [...history];
-    newHistory[currentAttempt] = [{playerListCopy, matchCount}];
+    newHistory[currentAttempt] = {playerListCopy, matchCount};
     setHistory(newHistory);
     
-    // Actualizar intentos vacíos
-    const newEmptyAttempts = emptyAttempts.filter(attempt => attempt !== currentAttempt);
-    setEmptyAttempts(newEmptyAttempts);
-    
-    // Añadir el nuevo intento al array de animaciones en curso
-    setShowingAttempts(prev => [...prev, currentAttempt]);
-    
-    // Actualizar el estado después de la animación
     const matchesWereEqual = matchCount === solutionList.length;
-    const attemptNumber = currentAttempt; // Guardar el valor actual para el timeout
+    const isLastAttempt = currentAttempt + 1 >= 7;
     
-    // Usar un timeout para asegurar que los estados se actualicen después de la animación
+    // Actualizar los matches inmediatamente
+    setMatches(matchCount);
+    
+    // Si es el último intento, actualizar intentos a 0
+    if (isLastAttempt) {
+      setAttempts(0);
+    }
+    
+    // Primero actualizar el historial y mostrar la animación
+    // Luego, con un retraso mayor, actualizar el estado del juego
     setTimeout(() => {
-      setMatches(matchCount);
-      setCurrentAttempt(currentAttempt + 1);
-      setAttempts(attempts - 1);
-      
       if (matchesWereEqual) {
         setWin(true);
+      } else if (isLastAttempt) {
+        // Incrementar el currentAttempt para que se muestre la última línea
+        setCurrentAttempt(currentAttempt + 1);
+        
+        // Después de un tiempo para mostrar la última línea, mostrar game over
+        setTimeout(() => {
+          setLose(true);
+        }, 300);
+      } else {
+        // Avanzar al siguiente intento solo si no ha ganado o perdido
+        setCurrentAttempt(currentAttempt + 1);
+        setAttempts(attempts - 1);
       }
-      if (currentAttempt === 6) {
-        setLose(true);
-      }
-    }, 100); // Tiempo muy corto para no retrasar la UI pero permitir que React actualice el DOM
-    
-    // Ocultar la animación después de un tiempo, pero solo eliminar el intento específico
-    setTimeout(() => {
-      setShowingAttempts(prev => prev.filter(attempt => attempt !== attemptNumber));
-    }, 1000);
+    }, 300); // Pequeño retraso para asegurar que la animación se vea
   }
 
   function resetGame() {
@@ -230,213 +229,174 @@ export default function Home() {
     // Reiniciar animación
     setShuffling(true);
     
-    // Animación de mezcla inicial
-    const startShuffleAnimation = () => {
-      let shuffleCount = 0;
-      const maxShuffles = 8;
+    // Iniciar la animación de shuffle después de un breve retraso
+    setTimeout(() => {
+      setShuffling(true);
       
-      const shuffleStep = () => {
-        if (shuffleCount >= maxShuffles) {
-          setActiveShuffleIndex(null);
+      // Ejecutar varios intercambios con tiempo suficiente para ver la animación
+      let count = 0;
+      const maxShuffles = 100;
+      
+      const performShuffle = () => {
+        if (count >= maxShuffles) {
           setShuffling(false);
           return;
         }
         
-        const i = Math.floor(Math.random() * 5);
-        let j = Math.floor(Math.random() * 5);
-        while (j === i) {
-          j = Math.floor(Math.random() * 5);
-        }
-        
-        setActiveShuffleIndex(i);
-        
-        setTimeout(() => {
-          setPlayerList(prevList => {
-            const newList = [...prevList];
-            [newList[i], newList[j]] = [newList[j], newList[i]];
-            return newList;
-          });
+        // Intercambiar dos posiciones aleatorias
+        setPlayerList(prevList => {
+          const newList = [...prevList];
+          const i = Math.floor(Math.random() * 5);
+          let j = Math.floor(Math.random() * 5);
+          while (j === i) {
+            j = Math.floor(Math.random() * 5);
+          }
           
-          shuffleCount++;
-          setTimeout(shuffleStep, 60);
-        }, 40);
+          [newList[i], newList[j]] = [newList[j], newList[i]];
+          return newList;
+        });
+        
+        count++;
+        setTimeout(performShuffle, 50); 
       };
       
-      setTimeout(shuffleStep, 300);
-    };
+      performShuffle();
+    }, 50); 
     
-    startShuffleAnimation();
+    return () => {
+      setShuffling(false);
+    };
   }
 
   return (
-    <div className='pt-6 md:pt-10 flex flex-col items-center min-h-screen px-4'>
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pt-8 px-4">
+      {/* Botón de cambio de tema */}
       <ThemeToggle />
       
-      <div className="game-container w-[500px] max-w-md mx-auto">
-        <h1 className="game-title">ORDER GAME</h1>
-        
-        {/* Panel de estadísticas */}
-        <div className="stats-container">
-          <div className="stat-item">
-            <span className="stat-value">{matches}</span>
-            <span className="stat-label">Coincidencias</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{attempts}</span>
-            <span className="stat-label">Intentos</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{currentAttempt}</span>
-            <span className="stat-label">Ronda</span>
-          </div>
-        </div>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6">Order Game</h1>
 
-        {win && (
-          <motion.div 
-            className="win-message"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold mb-2">¡Has ganado!</h2>
-            <p className="mb-4">Has ordenado correctamente todos los colores.</p>
-            <button 
-              className="game-button mx-auto block" 
-              onClick={resetGame}
-            >
-              Jugar de nuevo
-            </button>
-          </motion.div>
-        )}
-
-        {lose && (
-          <motion.div 
-            className="lose-message"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-2xl font-bold mb-2">¡Has perdido!</h2>
-            <p className="mb-4">No has conseguido ordenar los colores correctamente.</p>
-            <button 
-              className="game-button mx-auto block" 
-              onClick={resetGame}
-            >
-              Intentar de nuevo
-            </button>
-          </motion.div>
-        )}
-        
-        {!win && !lose && (
-          <button 
-            className='game-button mx-auto block mb-8' 
-            onClick={checkMatches}
-          >
-            Comprobar orden
-          </button>
-        )}
-        
-        {!win && 
-        <DndContext
-          sensors={sensors}
-          onDragEnd={handleDragEnd}
-          collisionDetection={closestCenter}
-        >
-          <SortableContext
-            items={playerList}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className='grid grid-cols-5 gap-2.5 mb-6 mx-auto'>
-              {playerList.map((color, index) => (
-                <motion.div
-                  key={color}
-                  layout
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ 
-                    scale: activeShuffleIndex === index ? 1.1 : 1, 
-                    opacity: 1,
-                    y: activeShuffleIndex === index ? -10 : 0
-                  }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 300, 
-                    damping: 20
-                  }}
-                >
-                  <OrderItem color={color} />
-                </motion.div>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-        }
-
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-3 px-2">Historial de intentos:</h2>
-          
-          <div className="history-container space-y-1">
-            {/* Intentos completados */}
-            {history.map((historyItem, index) => {
-              if (!historyItem || historyItem.length === 0) return null;
-              const isCurrentlyShowing = showingAttempts.includes(index);
-              
-              return (
-                <div className='history-item flex items-center' key={`history-${index}`}>
-                  <div className='grid grid-cols-5 gap-2.5 flex-grow'>
-                    {
-                      historyItem[0].playerListCopy.map((color: string, colorIndex: number) => (
-                        <motion.div 
-                          key={`${index}-${colorIndex}`}
-                          initial={isCurrentlyShowing ? { scale: 0, opacity: 0 } : false}
-                          animate={isCurrentlyShowing ? { 
-                            scale: 1, 
-                            opacity: 1
-                          } : {}}
-                          transition={{ 
-                            duration: 0.15, 
-                            delay: isCurrentlyShowing ? colorIndex * 0.07 : 0,
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 20
-                          }}
-                        >
-                          <div className={`color-box ${getColorClass(color)}`}></div>
-                        </motion.div>
-                      ))
-                    }
+      {/* Sección de Intentos y Tablero */} 
+      <div className="w-full max-w-sm md:max-w-md mx-auto space-y-2 mb-6">
+        {Array.from({ length: 7 }).map((_, index) => (
+          <div 
+            key={`attempt-row-${index}`} 
+            className={`flex items-center justify-center p-2 rounded-lg bg-white dark:bg-gray-800 shadow min-h-[70px] ${index === currentAttempt ? 'ring-2 ring-blue-500' : ''}`}
+          > 
+            <div className="flex-1 flex justify-center items-center space-x-2 relative">
+              {/* Tablero interactivo en la línea actual */}
+              {index === currentAttempt && !win && !lose && (
+                <div className="flex items-center">
+                  <div className="flex space-x-2">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={playerList} strategy={verticalListSortingStrategy}> 
+                        <div className="flex space-x-2">
+                          {playerList.map((color, idx) => (
+                            <motion.div
+                              key={color}
+                              layout
+                              layoutId={color}
+                              transition={{
+                                type: "spring",
+                                stiffness: 600, 
+                                damping: 35, 
+                                duration: 0.15 
+                              }}
+                            >
+                              <OrderItem 
+                                color={color} 
+                                id={color} 
+                                isShuffling={shuffling}
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   </div>
-                  <motion.div 
-                    className="match-count"
-                    initial={isCurrentlyShowing ? { scale: 0 } : false}
-                    animate={isCurrentlyShowing ? { scale: 1 } : {}}
-                    transition={{ 
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 15,
-                      delay: isCurrentlyShowing ? 0.45 : 0
-                    }}
-                  >
-                    {historyItem[0].matchCount}
-                  </motion.div>
+                  {/* Bolita con "-" para mantener alineación - con mayor separación */}
+                  <div className="ml-8 w-12 h-12 flex items-center justify-center rounded-full bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 font-bold text-lg">
+                    -
+                  </div>
                 </div>
-              );
-            })}
-            
-            {/* Intentos vacíos */}
-            {emptyAttempts.map((attempt) => (
-              <div className='history-item flex items-center opacity-50' key={`empty-${attempt}`}>
-                <div className='grid grid-cols-5 gap-2.5 flex-grow'>
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <div 
-                      key={`empty-box-${attempt}-${i}`} 
-                      className="color-box bg-gray-300 dark:bg-gray-700"
-                    ></div>
-                  ))}
+              )}
+              
+              {/* Historial de intentos pasados */}
+              {index < currentAttempt && history[index] && (
+                <div className="flex items-center">
+                  <div className="flex space-x-1 md:space-x-2">
+                    {history[index]?.playerListCopy.map((color: string, i: number) => (
+                      <motion.div
+                        key={`${index}-${i}-${color}`}
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-lg shadow-md ${getColorClass(color)}`}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: i * 0.05 }}
+                      />
+                    ))}
+                  </div>
+                  {/* Mostrar número de coincidencias permanente con mayor separación */}
+                  <div className="ml-4 md:ml-8 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-blue-500 text-white font-bold text-lg">
+                    {history[index]?.matchCount}
+                  </div>
                 </div>
-                <div className="match-count">-</div>
-              </div>
-            ))}
+              )}
+              
+              {/* Placeholders para filas futuras */}
+              {index > currentAttempt && (
+                <div className="flex items-center">
+                  <div className="flex space-x-1 md:space-x-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={`placeholder-${index}-${i}`} className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-gray-300 dark:bg-gray-600 opacity-50"></div>
+                    ))}
+                  </div>
+                  <div className="ml-4 md:ml-8 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-gray-300 dark:bg-gray-600 opacity-50">-</div>
+                </div>
+              )}
+            </div>
           </div>
+        ))}
+      </div>
+
+      {/* Área de juego */}
+      <div className="w-full max-w-sm md:max-w-md mx-auto">
+
+        {/* Botones de acción */}
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={checkMatches}
+            disabled={win || lose || shuffling}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
+          >
+            Comprobar
+          </button>
+        </div>
+      </div>
+
+      {/* Mensajes de victoria/derrota */}
+      {(win || lose) && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mt-4"
+        >
+          <h2 className={`text-3xl font-bold ${win ? 'text-green-500' : 'text-red-500'}`}>
+            {win ? 'You Win!' : 'Game Over!'}
+          </h2>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+          >
+            Play Again
+          </button>
+        </motion.div>
+      )}
+
+      {/* Información - Solo mostrar intentos restantes */}
+      <div className="flex justify-center text-center mt-4">
+        <div>
+          <p className="text-lg font-semibold">Attempts Left</p>
+          <p className={`text-2xl font-bold ${attempts <= 2 ? 'text-red-500' : 'text-green-500'}`}>{attempts}</p>
         </div>
       </div>
     </div>

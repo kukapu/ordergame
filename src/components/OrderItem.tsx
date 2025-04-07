@@ -1,11 +1,15 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { motion } from "framer-motion";
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
 
 interface OrderItemProps {
+  id: string;
   color: string;
+  isShuffling?: boolean;
 }
 
+// Función para obtener la clase de color
 const getColorClass = (color: string) => {
   switch(color) {
     case 'gradient-1':
@@ -27,18 +31,18 @@ const getColorClass = (color: string) => {
     default:
       return 'bg-gray-500';
   }
-}
+};
 
-export const OrderItem = ({ color }: OrderItemProps) => {
-  const { 
-    attributes, 
-    listeners, 
-    setNodeRef, 
-    transform, 
+export const OrderItem = ({ color, id, isShuffling = false }: OrderItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
     transition,
-    isDragging 
-  } = useSortable({
-    id: color,
+    isDragging
+  } = useSortable({ 
+    id,
     transition: {
       duration: 350,
       easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
@@ -52,32 +56,38 @@ export const OrderItem = ({ color }: OrderItemProps) => {
     touchAction: 'none', // Importante para dispositivos táctiles
   };
 
+  // Si está en modo shuffle, no permitir arrastrar
+  const dragHandlers = isShuffling ? {} : { ...attributes, ...listeners };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...dragHandlers}
       className="touch-none select-none cursor-grab active:cursor-grabbing"
     >
-      <motion.div 
-        className={`color-box ${getColorClass(color)} w-full aspect-square`}
-        whileHover={{ scale: 1.05, rotate: 0 }}
-        whileTap={{ scale: 0.95 }}
+      <motion.div
+        className={`
+          w-10 h-10 md:w-12 md:h-12 
+          rounded-lg shadow-md
+          ${getColorClass(color)}
+          ${isShuffling ? 'pointer-events-none' : ''}
+        `}
+        whileHover={!isShuffling ? { scale: 1.05 } : {}}
+        whileTap={!isShuffling ? { scale: 0.95 } : {}}
         animate={{
-          scale: isDragging ? 1.1 : 1,
-          rotate: isDragging ? [-2, 2, -2] : 0,
+          scale: isDragging ? 1.1 : isShuffling ? 1.05 : 1,
           boxShadow: isDragging 
             ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)' 
             : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
         }}
-        transition={{
-          rotate: {
-            repeat: isDragging ? Infinity : 0,
-            duration: 0.5
-          }
+        transition={{ 
+          type: 'spring', 
+          stiffness: 500, 
+          damping: 30,
+          duration: 0.2
         }}
       />
     </div>
-  )
-}
+  );
+};

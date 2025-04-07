@@ -20,11 +20,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Efecto para cargar el tema inicial
   useEffect(() => {
+    // Evitar ejecución durante SSR
+    if (typeof window === 'undefined') return;
+    
     // Check if user has a saved theme preference
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     
     // Set theme based on saved preference or use dark as default
-    if (savedTheme) {
+    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
       setTheme(savedTheme);
     } else {
       // Comprobar preferencia del sistema si no hay tema guardado
@@ -37,28 +40,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Efecto para aplicar el tema al DOM
   useEffect(() => {
-    if (mounted) {
-      // Aplicar el tema utilizando data-attribute en lugar de class
-      document.documentElement.setAttribute('data-theme', theme);
-      
-      // También aplicar la clase 'dark' para compatibilidad con Tailwind
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      
-      // Guardar preferencia de tema
-      localStorage.setItem('theme', theme);
+    if (!mounted || typeof window === 'undefined') return;
+    
+    // Aplicar el tema utilizando data-attribute en lugar de class
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // También aplicar la clase 'dark' para compatibilidad con Tailwind
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
+    
+    // Guardar preferencia de tema
+    localStorage.setItem('theme', theme);
   }, [theme, mounted]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  // Valor del contexto
+  const contextValue = {
+    theme,
+    toggleTheme
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
@@ -66,5 +75,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
   return context;
 }
