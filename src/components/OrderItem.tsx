@@ -44,7 +44,7 @@ export const OrderItem = ({ color, id, isShuffling = false }: OrderItemProps) =>
   } = useSortable({ 
     id,
     transition: {
-      duration: 350,
+      duration: 200, // Reducido para mejor rendimiento
       easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
     },
   });
@@ -54,6 +54,7 @@ export const OrderItem = ({ color, id, isShuffling = false }: OrderItemProps) =>
     transition,
     zIndex: isDragging ? 10 : 1,
     touchAction: 'none', // Importante para dispositivos táctiles
+    willChange: 'transform', // Optimización para rendimiento
   };
 
   // Si está en modo shuffle, no permitir arrastrar
@@ -68,18 +69,18 @@ export const OrderItem = ({ color, id, isShuffling = false }: OrderItemProps) =>
     >
       <motion.div
         className={`
-          w-10 h-10 md:w-12 md:h-12 
+          w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 
           rounded-lg shadow-md
           ${getColorClass(color)}
           ${isShuffling ? 'pointer-events-none' : ''}
         `}
-        whileHover={!isShuffling ? { scale: 1.05 } : {}}
-        whileTap={!isShuffling ? { scale: 0.95 } : {}}
+        whileHover={!isShuffling ? { scale: 1.05 } : undefined}
+        whileTap={!isShuffling ? { scale: 0.95 } : undefined}
         animate={{
-          scale: isDragging ? 1.1 : isShuffling ? 1.05 : 1,
+          scale: isDragging ? 1.05 : 1,
           boxShadow: isDragging 
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)' 
-            : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
+            ? '0 4px 6px -1px rgba(0, 0, 0, 0.2)' 
+            : '0 1px 3px rgba(0, 0, 0, 0.1)'
         }}
         transition={{ 
           type: 'spring', 
