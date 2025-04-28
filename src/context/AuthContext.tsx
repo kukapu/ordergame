@@ -8,7 +8,7 @@ interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any } | undefined>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: any } | undefined>;
   signIn: (email: string, password: string) => Promise<{ error: any } | undefined>;
   signInWithProvider: (provider: 'google' | 'facebook') => Promise<void>;
   signOut: () => Promise<void>;
@@ -38,9 +38,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: name ? { data: { name } } : undefined,
+    });
+    console.log('Supabase signUp response:', { data, error });
+    if (!error && name) {
+      try {
+        await supabase.auth.updateUser({ data: { full_name: name } });
+      } catch (e) {
+        console.log('Error actualizando display name:', e);
+      }
+    }
     setLoading(false);
     return { error };
   };

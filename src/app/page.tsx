@@ -3,7 +3,7 @@ import { OrderItem } from '@/components/OrderItem';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -79,6 +79,10 @@ export default function Home() {
   const [lose, setLose] = useState(false);
   const [history, setHistory] = useState<(History | null)[]>([]);
   const [emptyAttempts, setEmptyAttempts] = useState<number[]>([]);
+  const [showSolution, setShowSolution] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'win' | 'lose' | null>(null);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
 
   // Configuración de sensores para mejorar la experiencia táctil
   const sensors = useSensors(
@@ -142,10 +146,40 @@ export default function Home() {
       performShuffle();
     }, 50); 
     
+    setShowSolution(false);
+    setShowModal(false);
+    setModalType(null);
+    
     return () => {
       setShuffling(false);
     };
   }, []);
+
+  useEffect(() => {
+    if (win) {
+      setShowModal(true);
+      setModalType('win');
+    } else if (lose) {
+      setShowModal(true);
+      setModalType('lose');
+    }
+  }, [win, lose]);
+
+  // Manejar reabrir el modal al hacer clic solo en la zona de juego si la partida terminó
+  useEffect(() => {
+    function handleGameAreaClick(e: MouseEvent) {
+      if (!showModal && (win || lose)) {
+        setShowModal(true);
+      }
+    }
+    const gameArea = gameAreaRef.current;
+    if (gameArea && !showModal && (win || lose)) {
+      gameArea.addEventListener('click', handleGameAreaClick);
+    }
+    return () => {
+      if (gameArea) gameArea.removeEventListener('click', handleGameAreaClick);
+    };
+  }, [showModal, win, lose]);
 
   function handleDragEnd(event: { active: any; over: any; }) {
     const { active, over } = event;
@@ -252,27 +286,35 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pt-4 px-3 sm:pt-8 sm:px-4">
-      {/* Cabecera con título y botón de tema */}
+    <div ref={gameAreaRef} className="flex flex-col items-center justify-start min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pt-4 px-3 sm:pt-8 sm:px-4">
+      {/* Espacio superior para no invadir el NavBar */}
+      <div className="h-16 sm:h-20" />
+      {/* Checkbox para mostrar la solución */}
       <div className="w-full max-w-xs sm:max-w-sm md:max-w-md flex flex-col items-center mb-4">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-3">Order Game</h1>
-        <div className="self-end">
-          <ThemeToggle />
-        </div>
+        <label className="flex items-center gap-3 cursor-pointer select-none text-base font-medium text-slate-700 dark:text-slate-200">
+          <input
+            type="checkbox"
+            checked={!!showSolution}
+            onChange={e => setShowSolution(e.target.checked)}
+            className="appearance-none w-6 h-6 border-2 border-indigo-400 dark:border-indigo-500 rounded-md bg-white dark:bg-slate-800 checked:bg-indigo-500 checked:dark:bg-indigo-600 checked:border-transparent transition-all focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+          />
+          <span className="ml-1">Enseñar solución</span>
+        </label>
       </div>
-      
-      {/* Sección de depuración - Solución */}
-      <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto mb-4 p-2 bg-gray-200 dark:bg-gray-800 rounded-lg">
-        <p className="text-sm font-medium mb-1 text-center">Solución (Debug):</p>
-        <div className="flex justify-center space-x-1 sm:space-x-2">
-          {solution.map((color, idx) => (
-            <div
-              key={`debug-solution-${idx}`}
-              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${getColorClass(color)}`}
-            ></div>
-          ))}
+      {/* Sección de depuración - Solución (oculta por defecto) */}
+      {showSolution && (
+        <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto mb-4 p-2 bg-gray-200 dark:bg-gray-800 rounded-lg">
+          <p className="text-sm font-medium mb-1 text-center">Solución (Debug):</p>
+          <div className="flex justify-center space-x-1 sm:space-x-2">
+            {solution.map((color, idx) => (
+              <div
+                key={`debug-solution-${idx}`}
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${getColorClass(color)}`}
+              ></div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       
       {/* Sección de Intentos y Tablero */} 
       <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto space-y-1.5 sm:space-y-2 mb-4">
@@ -376,59 +418,60 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Mensaje de victoria */}
-      {win && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }} // Reducido para mejor rendimiento
-          className="mt-6 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded-lg shadow-md text-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto"
-        >
-          <p className="text-lg font-bold mb-2">¡Felicidades!</p>
-          <p>Has ganado en {currentAttempt} intentos.</p>
-          <p className="mt-2">Solución correcta:</p>
-          <div className="flex justify-center space-x-1 sm:space-x-2 my-3">
-            {solution.map((color, idx) => (
-              <div
-                key={`solution-${idx}`}
-                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${getColorClass(color)}`}
-              ></div>
-            ))}
+      {/* Modal de victoria o derrota */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-6 w-full max-w-xs sm:max-w-sm md:max-w-md mx-2 relative flex flex-col items-center">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl font-bold"
+              aria-label="Cerrar modal"
+            >
+              ×
+            </button>
+            {modalType === 'win' && (
+              <>
+                <p className="text-lg font-bold mb-2 text-green-700 dark:text-green-300">¡Felicidades!</p>
+                <p className="mb-1">Has ganado en {currentAttempt} intentos.</p>
+                <p className="mt-2">Solución correcta:</p>
+                <div className="flex justify-center space-x-1 sm:space-x-2 my-3">
+                  {solution.map((color, idx) => (
+                    <div
+                      key={`solution-${idx}`}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${getColorClass(color)}`}
+                    ></div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { setShowModal(false); resetGame(); setModalType(null); }}
+                  className="mt-3 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md text-sm"
+                >
+                  Jugar de nuevo
+                </button>
+              </>
+            )}
+            {modalType === 'lose' && (
+              <>
+                <p className="text-lg font-bold mb-2 text-red-700 dark:text-red-300">¡Has perdido!</p>
+                <p>La solución era:</p>
+                <div className="flex justify-center space-x-1 sm:space-x-2 my-3">
+                  {solution.map((color, idx) => (
+                    <div
+                      key={`solution-${idx}`}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${getColorClass(color)}`}
+                    ></div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { setShowModal(false); resetGame(); setModalType(null); }}
+                  className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md text-sm"
+                >
+                  Intentar de nuevo
+                </button>
+              </>
+            )}
           </div>
-          <button
-            onClick={resetGame}
-            className="mt-3 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md text-sm"
-          >
-            Jugar de nuevo
-          </button>
-        </motion.div>
-      )}
-
-      {/* Mensaje de derrota */}
-      {lose && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }} // Reducido para mejor rendimiento
-          className="mt-6 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 rounded-lg shadow-md text-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto"
-        >
-          <p className="text-lg font-bold mb-2">¡Has perdido!</p>
-          <p>La solución era:</p>
-          <div className="flex justify-center space-x-1 sm:space-x-2 my-3">
-            {solution.map((color, idx) => (
-              <div
-                key={`solution-${idx}`}
-                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${getColorClass(color)}`}
-              ></div>
-            ))}
-          </div>
-          <button
-            onClick={resetGame}
-            className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md text-sm"
-          >
-            Intentar de nuevo
-          </button>
-        </motion.div>
+        </div>
       )}
     </div>
   );

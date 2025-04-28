@@ -4,6 +4,7 @@ import { ThemeToggle } from './ThemeToggle';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useState, useRef, useEffect } from 'react';
+import { FiUser } from 'react-icons/fi';
 
 export const NavBar = () => {
   const { user, signOut, loading } = useAuth();
@@ -34,34 +35,23 @@ export const NavBar = () => {
           <span className="font-bold text-xl tracking-tight cursor-pointer">OrderGame</span>
         </Link>
       </div>
-      <div className="flex items-center gap-4">
-        {/* LOG de estado auth para debug visual */}
-        <div style={{ fontSize: 12, color: '#888', background: '#eee', borderRadius: 4, padding: '2px 6px' }}>
-          loading: {String(loading)} | user: {user ? 'sí' : 'no'}
-        </div>
+      <div className="flex items-center gap-2">
         <ThemeToggle />
         {!loading && !user && (
           <Link href="/login" aria-label="Ir a login">
-            <button className="p-2 rounded-full bg-slate-200/50 dark:bg-slate-700/30 hover:scale-110 transition-all ml-2">
-              {/* Icono de usuario/login */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-user">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+            <button className="p-2 rounded-full bg-slate-200/50 dark:bg-slate-700/30 hover:scale-110 transition-all">
+              <FiUser size={24} />
             </button>
           </Link>
         )}
         {!loading && user && (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative">
             <button
               className="p-2 rounded-full bg-slate-200/50 dark:bg-slate-700/30 hover:scale-110 transition-all"
               onClick={() => setDropdownOpen((open) => !open)}
               aria-label="Menú de usuario"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-user">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+              <FiUser size={24} />
             </button>
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-800 rounded shadow-lg py-2 z-30 animate-fadeIn">
